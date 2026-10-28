@@ -1,5 +1,9 @@
 # secrets — never commit
 .env
+*.pem
+*.key
+*.p12
+*.pfx
 
 # runtime data: uploaded images, generations, sqlite db
 data/

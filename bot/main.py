@@ -31,6 +31,7 @@ from .services.selfcheck import SelfCheck, startup_log
 from .services.userqueue import ChatQueue
 from .stt.base import make_transcriber
 from .telegram.draft_streamer import DraftStreamer
+from .webstub import start_stub, stop_stub
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,6 +58,15 @@ async def main() -> None:
         return
 
     pathlib.Path(cfg.data_dir).mkdir(parents=True, exist_ok=True)
+
+    # HTTP health stub: binds $PORT so PaaS hosts (Render) can route/health-check
+    # the instance while the bot long-polls Telegram in this same process
+    stub_runner = None
+    try:
+        stub_runner, stub_port = await start_stub(cfg.port)
+        logger.info("health stub on :%s (/, /health, /healthz)", stub_port)
+    except OSError as e:
+        logger.warning("health stub not started: %s", e)
 
     db = Database(pathlib.Path(cfg.data_dir) / "bot.sqlite3")
     await db.connect()
@@ -125,6 +135,11 @@ async def main() -> None:
         await dp.start_polling(bot, handle_signals=True)
     finally:
         # graceful shutdown: cancel tracked pipeline tasks
+        if stub_runner is not None:
+            try:
+                await stop_stub(stub_runner)
+            except Exception:
+                logger.warning("health stub stop failed", exc_info=True)
         for chat_id in list(queue._tasks.keys()):
             task = queue._tasks.get(chat_id)
             if task and not task.done():

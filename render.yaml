@@ -1,0 +1,29 @@
+# Render Blueprint: long-polling bot as a web service.
+# The in-process HTTP stub (bot/webstub.py) binds $PORT and answers /health,
+# so Render can route and health-check the instance while the bot polls Telegram.
+services:
+  - type: web
+    name: telesign-bot
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    disk:
+      name: telesign-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      # keep sqlite + uploaded files across deploys (Dockerfile: DATA_DIR=/app/data)
+      - key: DATA_DIR
+        value: /app/data
+      # local faster-whisper needs ffmpeg + RAM; cloud STT fits the free plan
+      - key: STT_PROVIDER
+        value: cloud
+      - key: IMAGE_RESOLUTION
+        value: 2K
+      # set these in the Render dashboard (Secret Files or plain env)
+      - key: BOT_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ALLOWED_USER_IDS
+        sync: false

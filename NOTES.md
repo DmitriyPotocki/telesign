@@ -70,6 +70,14 @@
    шлём `format: "ogg"`, при отказе провайдера — конвертация в wav через ffmpeg (fallback
    в `CloudTranscriber`).
 
+- **Render.com**: long-polling боту нужен HTTP-listener для health check —
+  `bot/webstub.py` (aiohttp, уже в зависимостях через aiogram) поднимается в `main()`
+  ДО поллинга и гасится в finally; маршруты `/`, `/health`, `/healthz` → JSON ok.
+  Порт: поле `port` конфига читает окружение `PORT` (Render назначает), локальный
+  дефолт 8080; bind-ошибка не роняет бота (warning). `render.yaml` (Blueprint):
+  docker-сервис, диск на `/app/data`, `healthCheckPath: /health`, секреты `sync: false`,
+  `STT_PROVIDER=cloud`. На free-плане для удержания — внешний пингер на `/health ≤10 мин.
+
 ## Окружение / прочее
 
 - В dev-окружении установлен **Python 3.14** (промпт просил 3.12) — код совместим с 3.12+;

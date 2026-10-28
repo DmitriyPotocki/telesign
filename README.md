@@ -99,6 +99,29 @@ docker compose logs -f
    `/files` — просмотр и удаление файлов; `/settings` — варианты/формат; `/instructs` —
    постоянные инструкции; `/cancel` — отмена текущей генерации.
 
+## Деплой на Render
+
+Бот работает через long-polling и не слушает HTTP, но Render-веб-сервис обязан
+занять `$PORT` и отвечать на health check. Для этого в том же процессе поднимается
+**сервисная заглушка** `bot/webstub.py` (aiohttp): маршруты `/`, `/health`,
+`/healthz` → `200 {"status": "ok", ...}`. Порт берётся из переменной окружения
+`PORT` (Render назначает её сам), локальный дефолт — `HTTP`-`port=8080`.
+
+В корне лежит `render.yaml` (Blueprint):
+
+- web-сервис на Docker (`Dockerfile`), `healthCheckPath: /health`;
+- д��ск 1 GB смонтирован в `/app/data` — SQLite и картинки переживают деплои;
+- `STT_PROVIDER=cloud` (локальному whisper на free-плане не хватит памяти);
+- секреты `BOT_TOKEN`, `OPENROUTER_API_KEY`, `ALLOWED_USER_IDS` задаются в
+  дашборде Render (`sync: false`).
+
+Настройка: New → Blueprint → выбрать репозиторий → задать три секрета → Deploy.
+
+> Free-план засыпает после ~15 минут простоя. Чтобы бот не засыпал,
+> поставь внешний пингер (UptimeRobot и т.п.) на
+> `https://<service>.onrender.com/health` с интервалом ≤10 минут — заглушка
+> отвечает мгновенно, а бот продолжает поллинг в том же процессе.
+
 ## Тесты и линт
 
 ```bash

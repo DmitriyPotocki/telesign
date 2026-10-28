@@ -32,6 +32,10 @@ class Config(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     data_dir: pathlib.Path = pathlib.Path("data")
 
+    # HTTP health stub (Render/any PaaS): reads PORT from the environment,
+    # Render assigns it automatically; local default below.
+    port: int = 8080
+
     # generation tuning
     gen_concurrency: int = 4
     gen_timeout: float = 240.0

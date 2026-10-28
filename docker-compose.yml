@@ -1,0 +1,10 @@
+services:
+  telesign-bot:
+    build: .
+    container_name: telesign-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
